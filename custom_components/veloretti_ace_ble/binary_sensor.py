@@ -15,6 +15,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             AceConnection(entry.runtime_data, "connectivity"),
             AceCharging(entry.runtime_data, "charging"),
             AceLights(entry.runtime_data, "lights"),
+            AcePower(entry.runtime_data, "power"),
         ]
     )
 
@@ -59,3 +60,23 @@ class AceLights(AceEntity, BinarySensorEntity):
     @property
     def is_on(self):
         return self.coordinator.data.lights
+
+
+class AcePower(AceEntity, BinarySensorEntity):
+    """An observed display-power event, not inferred from missing Bluetooth."""
+
+    _attr_name = "Fiets aan (experimenteel)"
+    _attr_device_class = BinarySensorDeviceClass.POWER
+
+    @property
+    def available(self):
+        return self.coordinator.data.powered is not None
+
+    @property
+    def is_on(self):
+        return self.coordinator.data.powered
+
+    @property
+    def extra_state_attributes(self):
+        observed = self.coordinator.power_observed_at
+        return {"observed_at": observed.isoformat() if observed else None}

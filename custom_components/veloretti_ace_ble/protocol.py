@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 BATTERY_HEADER = bytes.fromhex("02 f8 32 00")
 CHARGING_HEADER = bytes.fromhex("04 f8 34 02")
 SPEED_HEADER = bytes.fromhex("02 f8 32 01")
+POWER_HEADER = bytes.fromhex("02 f8 32 04")
 LIGHT_HEADERS = (bytes.fromhex("14 a8 00 41"), bytes.fromhex("15 a2 00 41"))
 
 
@@ -14,6 +15,7 @@ class Telemetry:
     range_km: float | None = None
     trip_km: float | None = None
     charging: bool | None = None
+    powered: bool | None = None
     lights: bool | None = None
     speed_kmh: float | None = None
     voltage_v: float | None = None
@@ -35,6 +37,10 @@ class Telemetry:
             # Experimental voltage: rises during charging, falls after unplugging.
             voltage = int.from_bytes(packet[8:10], "little") / 100
             self.voltage_v = voltage if 0 < voltage <= 60 else None
+            return False
+        if len(packet) == 5 and packet.startswith(POWER_HEADER):
+            # Reversible display on/off test. Ignore other values, never guess bits.
+            self.powered = {0: False, 1: True}.get(packet[4])
             return False
         if len(packet) == 5 and packet[:4] in LIGHT_HEADERS:
             # Observed 06 -> 07 -> 06 follows lights on -> off -> on.

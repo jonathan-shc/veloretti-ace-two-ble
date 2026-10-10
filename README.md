@@ -28,3 +28,7 @@ Speed was compared with the display by rotating the wheel near the proxy (about 
 Experimental battery voltage uses speed-frame offsets 8–9, uint16 LE /100 V. A controlled charging cycle produced 40.90 → 41.30 → 41.00 V, then 40.80–40.90 V; later unplugged readings were 40.50 V. This is compatible with the Electric Two specification (36 V nominal battery, 42 V charger), but the field and scaling are not independently measured. Voltage is not restored and is unavailable without a fresh telemetry frame. Current, power and lifetime odometer remain undecoded. See [electrical and odometer findings](docs/ELECTRICAL_TEST.md).
 
 Diagnostics include a rolling, memory-only capture of the last 6000 notifications, preserving repeated and transient packets with sequence numbers and UTC timestamps. Payloads are capped at 64 bytes, with original length retained. Eviction counts make missing history visible. The buffer spans reconnects but clears on integration unload/restart; nothing is saved to disk or sent externally automatically. Unknown payloads may contain identifiers: inspect before sharing diagnostic captures. This history supports controlled screen-switch research and is not an odometer decoder.
+
+## Observed display power
+
+The experimental power binary sensor decodes only the observed `02 f8 32 04` five-byte on (`01`) / off (`00`) event. It retains the event with an `observed_at` timestamp; Bluetooth loss alone does not mean the display is off. Unknown codes remain unknown. No Bluetooth commands are sent to wake the bike.

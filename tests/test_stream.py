@@ -241,3 +241,14 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
         await self.c._stream(object())
         self.assertIsNone(self.c.data.voltage_v)
         self.assertFalse(self.c.voltage_available)
+
+    async def test_shutdown_keeps_its_actual_observation_timestamp(self):
+        self.c._notify(None, bytearray.fromhex("02 f8 32 04 01"))
+        self.assertTrue(self.c.data.powered)
+        self.assertIsNotNone(self.c.power_observed_at)
+        self.c._notify(None, bytearray.fromhex("02 f8 32 04 00"))
+        self.assertFalse(self.c.data.powered)
+        observed = self.c.power_observed_at
+        self.c.connected = False
+        self.c._notify(None, bytearray.fromhex("00 00 02 50 00 07 00 9f 00 00 e0 00"))
+        self.assertEqual(self.c.power_observed_at, observed)
