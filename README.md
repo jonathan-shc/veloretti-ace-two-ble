@@ -1,14 +1,14 @@
 # Veloretti Ace Two BLE (experimental)
 
-Private, local Home Assistant integration for the Ace Two V-S/V-R Bluetooth profile. Uses active ESPHome proxies (including NanoC6) or a connectable local adapter. Separate domain `veloretti_ace_ble`, so it can coexist with `veloretti_ble` and the cloud integration.
+Local Home Assistant integration for the Ace Two V-S/V-R Bluetooth profile. Uses active ESPHome proxies (including NanoC6) or a connectable local adapter. Separate domain `veloretti_ace_ble`, so it can coexist with `veloretti_ble` and the cloud integration.
 
 ## Current status
-Notification subscription and the candidate battery decoder are implemented; **not yet tested live inside Home Assistant**. One user capture at a display SOC of 91% contains 423 matching battery packets. Validation at a second SOC is still required. Other models, address stability, restart/reconnect behavior and charging with the bike switched off remain unverified.
+Notification subscription and the candidate battery decoder are implemented and **tested live on Home Assistant 2026.10.0 through an active NanoC6 proxy**, reporting 91% with live connectivity. One user capture at a display SOC of 91% contains 423 matching battery packets. Validation at a second SOC is still required. Other models, address stability, restart/reconnect behavior and charging with the bike switched off remain unverified.
 
 Only battery (explicitly experimental), last battery measurement and live connectivity are exposed. Last-known battery and its timestamp survive a Home Assistant restart. Live means a connection plus a recognized battery frame in the last 30 seconds; advertising alone is insufficient.
 
 ## Installation
-1. Add this private repository in HACS if your HACS setup has access, category Integration; otherwise copy `custom_components/veloretti_ace_ble` to HA's `config/custom_components/`.
+1. Add `jonathan-shc/veloretti-ace-two-ble` as a custom repository in HACS, category Integration; alternatively copy `custom_components/veloretti_ace_ble` to HA's `config/custom_components/`.
 2. Restart HA. Enable active scanning and active connections on the ESPHome proxy near the bike.
 3. Keep the bike on. Disconnect nRF Connect and close the official app so the connection is available.
 4. Add **Veloretti Ace Two BLE** under Settings → Devices & services and select the V-S/V-R device. Discovery is only a candidate match; setup checks the full proprietary GATT service before subscribing.

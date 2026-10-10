@@ -19,4 +19,6 @@ Service `92914b00-bfde-4176-b275-09a9e1e2c691`; command characteristic `92914b01
 
 Other observed messages include `00 00 02 50 ...` and `00 00 02 51 ...`. Their resemblance to older registers is insufficient: framing and placement differ. Decode only the exact battery header/length; retain other packets as raw diagnostics. Speed, assist, lights, current and charging state have not been mapped.
 
-Next: verify device identity and battery at a changed percentage; test HA proxy subscription, reconnect, unload cleanup and timestamp persistence. Compare controlled assist/light changes in future captures to infer additional fields. No command probing or speculative writes.
+Live HA validation: 2026-10-10, Home Assistant 2026.10.0 with active NanoC6 proxy, subscription succeeded, decoded SOC 91%, live true, no integration system-log errors. This validates the real proxy path at one percentage.
+
+Next: verify device identity and battery at a changed percentage; test reconnect, unload cleanup on real hardware and timestamp persistence. Compare controlled assist/light changes in future captures to infer additional fields. No command probing or speculative writes.
