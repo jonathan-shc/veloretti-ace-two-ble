@@ -1,7 +1,7 @@
 {
   "domain": "veloretti_ace_ble",
   "name": "Veloretti Ace Two BLE",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "config_flow": true,
   "bluetooth": [
     {

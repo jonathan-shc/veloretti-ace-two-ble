@@ -6,7 +6,7 @@ from dataclasses import asdict
 async def async_get_config_entry_diagnostics(hass, entry):
     c = entry.runtime_data
     return {
-        "version": "0.2.0",
+        "version": "0.2.1",
         "experimental": True,
         "connected": c.connected,
         "live": c.live,

@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 BATTERY_HEADER = bytes.fromhex("02 f8 32 00")
 CHARGING_HEADER = bytes.fromhex("04 f8 34 02")
+SPEED_HEADER = bytes.fromhex("02 f8 32 01")
 LIGHT_HEADERS = (bytes.fromhex("14 a8 00 41"), bytes.fromhex("15 a2 00 41"))
 
 
@@ -13,6 +14,7 @@ class Telemetry:
     range_km: float | None = None
     charging: bool | None = None
     lights: bool | None = None
+    speed_kmh: float | None = None
     raw: dict[str, str] = field(default_factory=dict)
     packets_received: int = 0
     battery_packets: int = 0
@@ -25,6 +27,10 @@ class Telemetry:
             key = f"{packet[:4].hex()}:{len(packet)}"
             if key in self.raw or len(self.raw) < 64:
                 self.raw[key] = packet[:64].hex(" ")
+        if len(packet) == 12 and packet.startswith(SPEED_HEADER):
+            speed = int.from_bytes(packet[4:6], "little") / 100
+            self.speed_kmh = speed if speed <= 100 else None
+            return False
         if len(packet) == 5 and packet[:4] in LIGHT_HEADERS:
             # Observed 06 -> 07 -> 06 follows lights on -> off -> on.
             # Other event codes may belong to other actions and are ignored.

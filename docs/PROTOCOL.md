@@ -18,7 +18,7 @@ Service `92914b00-bfde-4176-b275-09a9e1e2c691`; command characteristic `92914b01
 - Offset 10–11: uint16 little-endian /100 = estimated range in km. Controlled assistance changes produced 142, 99 and 81; user confirmed the displayed range.
 - Other fields unknown; no voltage/current interpretation.
 
-Other observed messages include `00 00 02 50 ...` and `00 00 02 51 ...`. Their resemblance to older registers is insufficient: framing and placement differ. Decode only the exact battery header/length; retain other packets as raw diagnostics. Speed, assist and current have not been mapped. Lights follow `14 A8 00 41 06/07` and `15 A2 00 41 06/07` in a reversible on/off/on test; see LIGHT_TEST.md. Controlled charger testing identified `04 F8 34 02 00/06` as experimental charging status; see CHARGING_TEST.md.
+Other observed messages include `00 00 02 50 ...` and `00 00 02 51 ...`. Their resemblance to older registers is insufficient: framing and placement differ. Decode only the exact battery header/length; retain other packets as raw diagnostics. Speed uses `02 F8 32 01` offsets 4–5, uint16 little-endian /100, tested against low-speed wheel rotation and standstill; see SPEED_TEST.md. Assist and current have not been mapped. Lights follow `14 A8 00 41 06/07` and `15 A2 00 41 06/07` in a reversible on/off/on test; see LIGHT_TEST.md. Controlled charger testing identified `04 F8 34 02 00/06` as experimental charging status; see CHARGING_TEST.md.
 
 Live HA validation: 2026-10-10, Home Assistant 2026.10.0 with active NanoC6 proxy, subscription succeeded, decoded SOC 91%, live true, no integration system-log errors. This validates the real proxy path at one percentage.
 

@@ -19,7 +19,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 from .const import DOMAIN, NOTIFY_UUID, SERVICE_UUID
-from .protocol import Telemetry, CHARGING_HEADER
+from .protocol import Telemetry, CHARGING_HEADER, SPEED_HEADER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,6 +43,7 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
         self._last_publish = 0.0
         self._last_battery = 0.0
         self._last_charging = 0.0
+        self._last_speed = 0.0
 
     @property
     def live(self) -> bool:
@@ -58,6 +59,15 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
             self.connected
             and self._last_charging > 0
             and time.monotonic() - self._last_charging < 30
+        )
+
+    @property
+    def speed_available(self) -> bool:
+        return (
+            self.connected
+            and self._last_speed > 0
+            and time.monotonic() - self._last_speed < 30
+            and self.data.speed_kmh is not None
         )
 
     def start(self) -> None:
@@ -108,9 +118,12 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
             self.data.range_km,
             self.data.charging,
             self.data.lights,
+            self.data.speed_kmh,
         )
         valid = self.data.receive(bytes(raw))
         now = time.monotonic()
+        if len(raw) == 12 and bytes(raw).startswith(SPEED_HEADER):
+            self._last_speed = now
         if len(raw) == 5 and bytes(raw).startswith(CHARGING_HEADER):
             self._last_charging = now
         if valid:
@@ -123,8 +136,11 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
             self.data.range_km,
             self.data.charging,
             self.data.lights,
+            self.data.speed_kmh,
         )
-        if current != previous or now - self._last_publish >= 5:
+        changed_status = current[:4] != previous[:4]
+        changed_speed = current[4] != previous[4] and now - self._last_publish >= 1
+        if changed_status or changed_speed or now - self._last_publish >= 5:
             self._last_publish = now
             self.async_set_updated_data(self.data)
 
@@ -132,8 +148,10 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
         client = None
         self._last_battery = 0.0
         self._last_charging = 0.0
+        self._last_speed = 0.0
         self.data.charging = None
         self.data.lights = None
+        self.data.speed_kmh = None
         try:
             client = await establish_connection(
                 BleakClientWithServiceCache, device, self.entry.title

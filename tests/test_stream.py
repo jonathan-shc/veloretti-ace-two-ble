@@ -192,3 +192,26 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
         await self.c._stream(object())
         self.assertIsNone(self.c.data.lights)
         self.assertIsNone(self.c.data.charging)
+
+    async def test_speed_freshness_does_not_use_battery_timestamp(self):
+        self.c.connected = True
+        self.c._notify(None, bytearray.fromhex("02 f8 32 01 14 03 00 00 dc 0f 3b ff"))
+        self.assertTrue(self.c.speed_available)
+        self.assertAlmostEqual(self.c.data.speed_kmh, 7.88)
+        self.assertFalse(self.c.live)
+        self.c._last_speed = self.module.time.monotonic() - 40
+        self.c._notify(None, bytearray.fromhex("02 f8 32 00 5c 00 00 00 2a 04 dc 1e"))
+        self.assertFalse(self.c.speed_available)
+
+    async def test_speed_updates_are_throttled_to_one_second(self):
+        self.c.async_set_updated_data = Mock()
+        with patch.object(
+            self.module.time, "monotonic", side_effect=[100, 100.1, 101.1]
+        ):
+            for value in ("11 03", "14 03", "94 02"):
+                self.c._notify(
+                    None,
+                    bytearray.fromhex("02 f8 32 01 " + value + " 00 00 dc 0f 3b ff"),
+                )
+        self.assertEqual(self.c.async_set_updated_data.call_count, 2)
+        self.assertAlmostEqual(self.c.data.speed_kmh, 6.6)

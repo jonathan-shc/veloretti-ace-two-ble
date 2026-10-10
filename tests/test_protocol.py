@@ -112,3 +112,31 @@ class LightTests(unittest.TestCase):
         ):
             t.receive(bytes.fromhex(packet))
             self.assertIsNone(t.lights)
+
+
+class SpeedTests(unittest.TestCase):
+    def test_wheel_capture_speeds(self):
+        for payload, expected in (
+            ("c1 01", 4.49),
+            ("11 03", 7.85),
+            ("14 03", 7.88),
+            ("94 02", 6.60),
+            ("00 00", 0),
+        ):
+            t = Telemetry(battery_soc=92, range_km=79)
+            self.assertFalse(
+                t.receive(
+                    bytes.fromhex("02 f8 32 01 " + payload + " 00 00 dc 0f 3b ff")
+                )
+            )
+            self.assertAlmostEqual(t.speed_kmh, expected)
+            self.assertEqual(t.battery_soc, 92)
+            self.assertEqual(t.range_km, 79)
+
+    def test_bad_speed_frames(self):
+        t = Telemetry()
+        for frame in ("02 f8 32 01 11 03", "02 f8 32 00 5c 00 00 00 2a 04 dc 1e"):
+            t.receive(bytes.fromhex(frame))
+            self.assertIsNone(t.speed_kmh)
+        t.receive(bytes.fromhex("02 f8 32 01 ff ff 00 00 dc 0f 3b ff"))
+        self.assertIsNone(t.speed_kmh)
