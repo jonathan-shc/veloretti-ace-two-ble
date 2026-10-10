@@ -1,0 +1,33 @@
+{
+  "domain": "veloretti_ace_ble",
+  "name": "Veloretti Ace Two BLE",
+  "version": "0.1.0",
+  "config_flow": true,
+  "bluetooth": [
+    {
+      "local_name": "V-S*",
+      "connectable": true
+    },
+    {
+      "local_name": "V-R*",
+      "connectable": true
+    },
+    {
+      "service_uuid": "00004b00-0000-1000-8000-00805f9b34fb",
+      "connectable": true
+    }
+  ],
+  "dependencies": [
+    "bluetooth_adapters"
+  ],
+  "requirements": [
+    "bleak-retry-connector>=3.6.0"
+  ],
+  "codeowners": [
+    "@jonathan-shc"
+  ],
+  "documentation": "https://github.com/jonathan-shc/veloretti-ace-two-ble",
+  "issue_tracker": "https://github.com/jonathan-shc/veloretti-ace-two-ble/issues",
+  "iot_class": "local_push",
+  "integration_type": "device"
+}
