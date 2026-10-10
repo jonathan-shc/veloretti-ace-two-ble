@@ -66,3 +66,49 @@ class BatteryStatusTests(unittest.TestCase):
         t = Telemetry()
         self.assertTrue(t.receive(bytes.fromhex("02 F8 32 00 5C 01 00 00 2A 04 D4 17")))
         self.assertEqual(t.battery_soc, 92)
+
+
+class RangeAndChargingTests(unittest.TestCase):
+    def test_display_confirmed_ranges(self):
+        for tail, expected in (("78 37", 142), ("ac 26", 99), ("a4 1f", 81)):
+            t = Telemetry()
+            self.assertTrue(
+                t.receive(bytes.fromhex("02 f8 32 00 5d 00 00 00 2a 04 " + tail))
+            )
+            self.assertEqual(t.range_km, expected)
+            self.assertEqual(t.battery_soc, 93)
+
+    def test_reversible_charging_status_preserves_battery_and_range(self):
+        t = Telemetry(battery_soc=93, range_km=81)
+        for status, expected in ((0, False), (6, True), (0, False)):
+            self.assertFalse(t.receive(bytes.fromhex("04 f8 34 02") + bytes([status])))
+            self.assertIs(t.charging, expected)
+            self.assertEqual(t.battery_soc, 93)
+            self.assertEqual(t.range_km, 81)
+
+    def test_unknown_charging_codes_are_unknown(self):
+        t = Telemetry(charging=True)
+        t.receive(bytes.fromhex("04 f8 34 02 01"))
+        self.assertIsNone(t.charging)
+
+
+class LightTests(unittest.TestCase):
+    def test_observed_light_cycle(self):
+        for header in ("14 a8 00 41", "15 a2 00 41"):
+            t = Telemetry(battery_soc=93, range_km=81)
+            for code, expected in ((6, True), (7, False), (6, True)):
+                self.assertFalse(t.receive(bytes.fromhex(header) + bytes([code])))
+                self.assertIs(t.lights, expected)
+                self.assertEqual(t.battery_soc, 93)
+                self.assertEqual(t.range_km, 81)
+
+    def test_other_event_codes_and_prefixes_do_not_set_lights(self):
+        t = Telemetry()
+        for packet in (
+            "14 a8 00 41 04",
+            "14 a8 00 42 06",
+            "15 a2 00 41",
+            "15 a2 00 41 06 00",
+        ):
+            t.receive(bytes.fromhex(packet))
+            self.assertIsNone(t.lights)

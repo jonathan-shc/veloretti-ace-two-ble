@@ -19,7 +19,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 from .const import DOMAIN, NOTIFY_UUID, SERVICE_UUID
-from .protocol import Telemetry
+from .protocol import Telemetry, CHARGING_HEADER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,6 +42,7 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
         self._next_attempt = 0.0
         self._last_publish = 0.0
         self._last_battery = 0.0
+        self._last_charging = 0.0
 
     @property
     def live(self) -> bool:
@@ -49,6 +50,14 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
             self.connected
             and self._last_battery > 0
             and time.monotonic() - self._last_battery < 30
+        )
+
+    @property
+    def charging_available(self) -> bool:
+        return (
+            self.connected
+            and self._last_charging > 0
+            and time.monotonic() - self._last_charging < 30
         )
 
     def start(self) -> None:
@@ -94,23 +103,37 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
 
     @callback
     def _notify(self, _characteristic, raw: bytearray) -> None:
-        previous = self.data.battery_soc
+        previous = (
+            self.data.battery_soc,
+            self.data.range_km,
+            self.data.charging,
+            self.data.lights,
+        )
         valid = self.data.receive(bytes(raw))
         now = time.monotonic()
+        if len(raw) == 5 and bytes(raw).startswith(CHARGING_HEADER):
+            self._last_charging = now
         if valid:
             self.last_seen = dt_util.utcnow()
             self._last_battery = now
         # The capture contains >20 packets/s. Publish at most every five seconds,
         # except when the decoded battery actually changes.
-        if (
-            valid and self.data.battery_soc != previous
-        ) or now - self._last_publish >= 5:
+        current = (
+            self.data.battery_soc,
+            self.data.range_km,
+            self.data.charging,
+            self.data.lights,
+        )
+        if current != previous or now - self._last_publish >= 5:
             self._last_publish = now
             self.async_set_updated_data(self.data)
 
     async def _stream(self, device) -> None:
         client = None
         self._last_battery = 0.0
+        self._last_charging = 0.0
+        self.data.charging = None
+        self.data.lights = None
         try:
             client = await establish_connection(
                 BleakClientWithServiceCache, device, self.entry.title

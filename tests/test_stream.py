@@ -167,3 +167,28 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(self.c._task, task)
         await task
         self.c._stream.assert_awaited_once()
+
+    async def test_charging_freshness_is_independent_of_battery(self):
+        self.c.connected = True
+        self.c._notify(None, bytearray.fromhex("04 f8 34 02 06"))
+        self.assertTrue(self.c.charging_available)
+        self.assertTrue(self.c.data.charging)
+        self.assertFalse(self.c.live)
+        self.c._last_charging = self.module.time.monotonic() - 40
+        self.c._notify(None, bytearray.fromhex("02 f8 32 00 5D 00 00 00 2A 04 A4 1F"))
+        self.assertTrue(self.c.live)
+        self.assertFalse(self.c.charging_available)
+
+    async def test_reconnect_clears_event_derived_light_status(self):
+        self.c.data.lights = True
+        self.c.data.charging = True
+        client = SimpleNamespace(
+            services=SimpleNamespace(get_service=lambda _: object()),
+            start_notify=AsyncMock(),
+            disconnect=AsyncMock(),
+            is_connected=False,
+        )
+        self.module.establish_connection.return_value = client
+        await self.c._stream(object())
+        self.assertIsNone(self.c.data.lights)
+        self.assertIsNone(self.c.data.charging)
