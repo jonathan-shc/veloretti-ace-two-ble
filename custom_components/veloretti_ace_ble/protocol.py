@@ -16,6 +16,7 @@ class Telemetry:
     charging: bool | None = None
     lights: bool | None = None
     speed_kmh: float | None = None
+    voltage_v: float | None = None
     raw: dict[str, str] = field(default_factory=dict)
     packets_received: int = 0
     battery_packets: int = 0
@@ -31,6 +32,9 @@ class Telemetry:
         if len(packet) == 12 and packet.startswith(SPEED_HEADER):
             speed = int.from_bytes(packet[4:6], "little") / 100
             self.speed_kmh = speed if speed <= 100 else None
+            # Experimental voltage: rises during charging, falls after unplugging.
+            voltage = int.from_bytes(packet[8:10], "little") / 100
+            self.voltage_v = voltage if 0 < voltage <= 60 else None
             return False
         if len(packet) == 5 and packet[:4] in LIGHT_HEADERS:
             # Observed 06 -> 07 -> 06 follows lights on -> off -> on.

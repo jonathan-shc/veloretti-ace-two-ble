@@ -169,3 +169,25 @@ class TripTests(unittest.TestCase):
         ):
             t.receive(bytes.fromhex(packet))
             self.assertEqual(t.trip_km, 1.25)
+
+
+class VoltageTests(unittest.TestCase):
+    def test_charger_cycle_and_latest_reading(self):
+        t = Telemetry(battery_soc=89)
+        for value, expected in (
+            ("fa 0f", 40.90), ("22 10", 41.30),
+            ("04 10", 41.00), ("d2 0f", 40.50),
+        ):
+            self.assertFalse(t.receive(bytes.fromhex(
+                "02 f8 32 01 00 00 00 00 " + value + " 3c ff"
+            )))
+            self.assertAlmostEqual(t.voltage_v, expected)
+            self.assertEqual(t.battery_soc, 89)
+
+    def test_invalid_voltage_and_unrelated_frames(self):
+        t = Telemetry(voltage_v=40.5)
+        t.receive(bytes.fromhex("02 f8 32 00 59 40 00 00 2e 04 0c 17"))
+        self.assertEqual(t.voltage_v, 40.5)
+        for voltage in ("00 00", "ff ff"):
+            t.receive(bytes.fromhex("02 f8 32 01 00 00 00 00 " + voltage + " 3c ff"))
+            self.assertIsNone(t.voltage_v)

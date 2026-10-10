@@ -215,3 +215,28 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
                 )
         self.assertEqual(self.c.async_set_updated_data.call_count, 2)
         self.assertAlmostEqual(self.c.data.speed_kmh, 6.6)
+
+    async def test_voltage_requires_fresh_valid_frame_and_connection(self):
+        self.c.connected = True
+        self.c._notify(None, bytearray.fromhex("02 f8 32 01 00 00 00 00 d2 0f 3c ff"))
+        self.assertTrue(self.c.voltage_available)
+        self.assertAlmostEqual(self.c.data.voltage_v, 40.5)
+        self.c._last_speed = self.module.time.monotonic() - 40
+        self.c._notify(None, bytearray.fromhex("02 f8 32 00 59 40 00 00 2e 04 0c 17"))
+        self.assertFalse(self.c.voltage_available)
+        self.c._notify(None, bytearray.fromhex("02 f8 32 01 00 00 00 00 ff ff 3c ff"))
+        self.assertFalse(self.c.voltage_available)
+        self.c._notify(None, bytearray.fromhex("02 f8 32 01 00 00 00 00 d2 0f 3c ff"))
+        self.c.connected = False
+        self.assertFalse(self.c.voltage_available)
+
+    async def test_reconnect_clears_voltage(self):
+        self.c.data.voltage_v = 40.5
+        client = SimpleNamespace(
+            services=SimpleNamespace(get_service=lambda _: object()),
+            start_notify=AsyncMock(), disconnect=AsyncMock(), is_connected=False,
+        )
+        self.module.establish_connection.return_value = client
+        await self.c._stream(object())
+        self.assertIsNone(self.c.data.voltage_v)
+        self.assertFalse(self.c.voltage_available)

@@ -70,6 +70,15 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
             and self.data.speed_kmh is not None
         )
 
+    @property
+    def voltage_available(self) -> bool:
+        return (
+            self.connected
+            and self._last_speed > 0
+            and time.monotonic() - self._last_speed < 30
+            and self.data.voltage_v is not None
+        )
+
     def start(self) -> None:
         self._remove_callback = async_register_callback(
             self.hass,
@@ -154,6 +163,7 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
         self.data.charging = None
         self.data.lights = None
         self.data.speed_kmh = None
+        self.data.voltage_v = None
         try:
             client = await establish_connection(
                 BleakClientWithServiceCache, device, self.entry.title

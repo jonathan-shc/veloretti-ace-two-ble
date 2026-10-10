@@ -6,7 +6,7 @@ from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorStateClass,
 )
-from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfLength, UnitOfSpeed
+from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfLength, UnitOfSpeed, UnitOfElectricPotential
 from .entity import AceEntity
 
 PARALLEL_UPDATES = 0
@@ -20,6 +20,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             AceSensor(entry.runtime_data, "range"),
             AceSensor(entry.runtime_data, "speed"),
             AceSensor(entry.runtime_data, "trip"),
+            AceSensor(entry.runtime_data, "voltage"),
         ]
     )
 
@@ -40,6 +41,12 @@ class AceSensor(AceEntity, RestoreSensor):
             self._attr_native_unit_of_measurement = UnitOfSpeed.KILOMETERS_PER_HOUR
             self._attr_state_class = SensorStateClass.MEASUREMENT
             self._attr_suggested_display_precision = 1
+        elif key == "voltage":
+            self._attr_name = "Accuspanning (experimenteel)"
+            self._attr_device_class = SensorDeviceClass.VOLTAGE
+            self._attr_native_unit_of_measurement = UnitOfElectricPotential.VOLT
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+            self._attr_suggested_display_precision = 2
         elif key == "trip":
             self._attr_name = "Trip (experimenteel)"
             self._attr_device_class = SensorDeviceClass.DISTANCE
@@ -80,6 +87,8 @@ class AceSensor(AceEntity, RestoreSensor):
     def available(self):
         if self.key == "speed":
             return self.coordinator.speed_available
+        if self.key == "voltage":
+            return self.coordinator.voltage_available
         return True
 
     @property
@@ -89,6 +98,7 @@ class AceSensor(AceEntity, RestoreSensor):
             "range": self.coordinator.data.range_km,
             "trip": self.coordinator.data.trip_km,
             "speed": self.coordinator.data.speed_kmh,
+            "voltage": self.coordinator.data.voltage_v,
             "last_seen": self.coordinator.last_seen,
         }[self.key]
         return value if value is not None else self._restored
