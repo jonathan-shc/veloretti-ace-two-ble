@@ -191,3 +191,20 @@ class VoltageTests(unittest.TestCase):
         for voltage in ("00 00", "ff ff"):
             t.receive(bytes.fromhex("02 f8 32 01 00 00 00 00 " + voltage + " 3c ff"))
             self.assertIsNone(t.voltage_v)
+
+
+class PowerEventTests(unittest.TestCase):
+    def test_observed_on_off_and_unknown_codes(self):
+        t = Telemetry()
+        self.assertIsNone(t.powered)
+        self.assertFalse(t.receive(bytes.fromhex("02 f8 32 04 01")))
+        self.assertTrue(t.powered)
+        self.assertFalse(t.receive(bytes.fromhex("02 f8 32 04 00")))
+        self.assertFalse(t.powered)
+        t.receive(bytes.fromhex("02 f8 32 04 02"))
+        self.assertIsNone(t.powered)
+
+    def test_truncated_shutdown_does_not_mean_off(self):
+        t = Telemetry(powered=True)
+        t.receive(bytes.fromhex("02 f8 32 04"))
+        self.assertTrue(t.powered)

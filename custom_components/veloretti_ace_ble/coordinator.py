@@ -19,7 +19,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 from .const import DOMAIN, NOTIFY_UUID, SERVICE_UUID
-from .protocol import Telemetry, CHARGING_HEADER, SPEED_HEADER
+from .protocol import Telemetry, CHARGING_HEADER, SPEED_HEADER, POWER_HEADER
 from .capture import PacketCapture
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,6 +36,7 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
         self.capture = PacketCapture()
         self.connected = False
         self.last_seen: datetime | None = None
+        self.power_observed_at: datetime | None = None
         self.last_error: str | None = None
         self._task: asyncio.Task | None = None
         self._remove_callback = None
@@ -133,6 +134,7 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
             self.data.lights,
             self.data.speed_kmh,
             self.data.trip_km,
+            self.data.powered,
         )
         valid = self.data.receive(bytes(raw))
         now = time.monotonic()
@@ -140,6 +142,8 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
             self._last_speed = now
         if len(raw) == 5 and bytes(raw).startswith(CHARGING_HEADER):
             self._last_charging = now
+        if len(raw) == 5 and bytes(raw).startswith(POWER_HEADER):
+            self.power_observed_at = timestamp
         if valid:
             self.last_seen = timestamp
             self._last_battery = now
@@ -152,8 +156,9 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
             self.data.lights,
             self.data.speed_kmh,
             self.data.trip_km,
+            self.data.powered,
         )
-        changed_status = current[:4] != previous[:4] or current[5] != previous[5]
+        changed_status = current[:4] != previous[:4] or current[5:] != previous[5:]
         changed_speed = current[4] != previous[4] and now - self._last_publish >= 1
         if changed_status or changed_speed or now - self._last_publish >= 5:
             self._last_publish = now
