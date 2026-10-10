@@ -42,12 +42,14 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
         fake(
             "homeassistant.components.bluetooth",
             async_ble_device_from_address=Mock(),
+            async_last_service_info=Mock(),
             async_register_callback=Mock(),
             BluetoothCallbackMatcher=dict,
             BluetoothScanningMode=SimpleNamespace(ACTIVE="active"),
         )
         fake("homeassistant.core", HomeAssistant=object, callback=lambda f: f)
         fake("homeassistant.helpers")
+        fake("homeassistant.helpers.event", async_track_time_interval=Mock())
         fake(
             "homeassistant.helpers.update_coordinator",
             DataUpdateCoordinator=CoordinatorBase,
@@ -124,3 +126,44 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
         self.c._remove_callback.assert_called_once()
         client.disconnect.assert_awaited_once()
         self.assertFalse(self.c.connected)
+
+    async def test_retry_uses_fresh_unchanged_advertisement(self):
+        self.module.async_last_service_info.return_value = SimpleNamespace(
+            time=self.module.time.monotonic()
+        )
+        self.module.async_ble_device_from_address.return_value = object()
+        self.c.hass.async_create_background_task = Mock(
+            side_effect=lambda coro, name: asyncio.create_task(coro)
+        )
+        self.c._stream = AsyncMock()
+        self.c._retry(None)
+        await self.c._task
+        self.c._stream.assert_awaited_once()
+
+    async def test_retry_skips_stale_advertisements_and_stopped_entry(self):
+        self.module.async_last_service_info.return_value = SimpleNamespace(
+            time=self.module.time.monotonic() - 60
+        )
+        self.c._retry(None)
+        self.assertIsNone(self.c._task)
+        self.c._stopping = True
+        self.module.async_last_service_info.return_value = SimpleNamespace(
+            time=self.module.time.monotonic()
+        )
+        self.c._retry(None)
+        self.assertIsNone(self.c._task)
+
+    async def test_retry_does_not_duplicate_running_stream(self):
+        self.module.async_last_service_info.return_value = SimpleNamespace(
+            time=self.module.time.monotonic()
+        )
+        self.c.hass.async_create_background_task = Mock(
+            side_effect=lambda coro, name: asyncio.create_task(coro)
+        )
+        self.c._stream = AsyncMock()
+        self.c._retry(None)
+        task = self.c._task
+        self.c._retry(None)
+        self.assertIs(self.c._task, task)
+        await task
+        self.c._stream.assert_awaited_once()

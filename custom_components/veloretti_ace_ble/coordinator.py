@@ -4,17 +4,19 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
 from homeassistant.components.bluetooth import (
     async_ble_device_from_address,
+    async_last_service_info,
     async_register_callback,
     BluetoothCallbackMatcher,
     BluetoothScanningMode,
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 from .const import DOMAIN, NOTIFY_UUID, SERVICE_UUID
 from .protocol import Telemetry
@@ -35,6 +37,7 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
         self.last_error: str | None = None
         self._task: asyncio.Task | None = None
         self._remove_callback = None
+        self._remove_retry = None
         self._stopping = False
         self._next_attempt = 0.0
         self._last_publish = 0.0
@@ -55,6 +58,15 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
             BluetoothCallbackMatcher(address=self.address, connectable=True),
             BluetoothScanningMode.ACTIVE,
         )
+        self._remove_retry = async_track_time_interval(
+            self.hass, self._retry, timedelta(seconds=10)
+        )
+        self._maybe_connect()
+
+    @callback
+    def _retry(self, _now) -> None:
+        # HA change callbacks may suppress identical advertisements after a
+        # reconnect. A fresh cached advertisement is enough to retry safely.
         self._maybe_connect()
 
     @callback
@@ -68,6 +80,9 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
             or (self._task and not self._task.done())
             or time.monotonic() < self._next_attempt
         ):
+            return
+        info = async_last_service_info(self.hass, self.address, connectable=True)
+        if info is None or time.monotonic() - info.time > 30:
             return
         device = async_ble_device_from_address(
             self.hass, self.address, connectable=True
@@ -135,6 +150,8 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
         self._stopping = True
         if self._remove_callback:
             self._remove_callback()
+        if self._remove_retry:
+            self._remove_retry()
         if self._task and not self._task.done():
             self._task.cancel()
             try:
