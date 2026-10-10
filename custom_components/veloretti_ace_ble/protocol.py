@@ -12,6 +12,7 @@ LIGHT_HEADERS = (bytes.fromhex("14 a8 00 41"), bytes.fromhex("15 a2 00 41"))
 class Telemetry:
     battery_soc: int | None = None
     range_km: float | None = None
+    trip_km: float | None = None
     charging: bool | None = None
     lights: bool | None = None
     speed_kmh: float | None = None
@@ -50,6 +51,9 @@ class Telemetry:
         if not 0 <= soc <= 100:
             return False
         self.battery_soc = soc
+        # Experimental: display Trip=1 with raw 123; wheel movement raised it
+        # to 125. A second displayed distance is still needed to confirm scale.
+        self.trip_km = int.from_bytes(packet[5:7], "little") / 100
         # Confirmed against display: 142 / 99 / 81 km at assistance 1 / 2 / 3.
         self.range_km = int.from_bytes(packet[10:12], "little") / 100
         self.battery_packets += 1

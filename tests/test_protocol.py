@@ -140,3 +140,32 @@ class SpeedTests(unittest.TestCase):
             self.assertIsNone(t.speed_kmh)
         t.receive(bytes.fromhex("02 f8 32 01 ff ff 00 00 dc 0f 3b ff"))
         self.assertIsNone(t.speed_kmh)
+
+
+class TripTests(unittest.TestCase):
+    def test_captured_trip_candidate_changes(self):
+        t = Telemetry()
+        for value, expected in (("7b 00", 1.23), ("7c 00", 1.24), ("7d 00", 1.25)):
+            self.assertTrue(
+                t.receive(bytes.fromhex("02 f8 32 00 5c " + value + " 00 2a 04 dc 1e"))
+            )
+            self.assertAlmostEqual(t.trip_km, expected)
+            self.assertEqual(t.battery_soc, 92)
+            self.assertEqual(t.range_km, 79)
+
+    def test_trip_zero_reset_and_high_byte(self):
+        t = Telemetry(trip_km=1.25)
+        t.receive(bytes.fromhex("02 f8 32 00 5c 00 00 00 2a 04 dc 1e"))
+        self.assertEqual(t.trip_km, 0)
+        t.receive(bytes.fromhex("02 f8 32 00 5c 2c 01 00 2a 04 dc 1e"))
+        self.assertEqual(t.trip_km, 3)
+
+    def test_non_battery_frames_do_not_overwrite_trip(self):
+        t = Telemetry(trip_km=1.25)
+        for packet in (
+            "02 f8 32 01 14 03 00 00 dc 0f 3b ff",
+            "04 f8 34 02 06",
+            "14 a8 00 41 06",
+        ):
+            t.receive(bytes.fromhex(packet))
+            self.assertEqual(t.trip_km, 1.25)

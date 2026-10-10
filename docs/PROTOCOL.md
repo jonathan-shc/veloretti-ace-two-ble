@@ -16,6 +16,7 @@ Service `92914b00-bfde-4176-b275-09a9e1e2c691`; command characteristic `92914b01
 - Offset 0–3: observed discriminator, meaning unknown.
 - Offset 4: 0x5B = 91, matches display. A later live frame contains `5C 01` at offsets 4/5. Decode byte 4 alone (candidate 92%); byte 5 is a separate unknown field. Accept only 0..100.
 - Offset 10–11: uint16 little-endian /100 = estimated range in km. Controlled assistance changes produced 142, 99 and 81; user confirmed the displayed range.
+- Offset 5–6: experimental trip candidate, uint16 LE /100 km. Values 123→125 during wheel test fit display Trip=1; scaling beyond that remains unconfirmed. Exposed only as experimental.
 - Other fields unknown; no voltage/current interpretation.
 
 Other observed messages include `00 00 02 50 ...` and `00 00 02 51 ...`. Their resemblance to older registers is insufficient: framing and placement differ. Decode only the exact battery header/length; retain other packets as raw diagnostics. Speed uses `02 F8 32 01` offsets 4–5, uint16 little-endian /100, tested against low-speed wheel rotation and standstill; see SPEED_TEST.md. Assist and current have not been mapped. Lights follow `14 A8 00 41 06/07` and `15 A2 00 41 06/07` in a reversible on/off/on test; see LIGHT_TEST.md. Controlled charger testing identified `04 F8 34 02 00/06` as experimental charging status; see CHARGING_TEST.md.

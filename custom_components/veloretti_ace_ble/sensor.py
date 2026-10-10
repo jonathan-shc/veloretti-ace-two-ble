@@ -19,6 +19,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             AceSensor(entry.runtime_data, "last_seen"),
             AceSensor(entry.runtime_data, "range"),
             AceSensor(entry.runtime_data, "speed"),
+            AceSensor(entry.runtime_data, "trip"),
         ]
     )
 
@@ -39,6 +40,12 @@ class AceSensor(AceEntity, RestoreSensor):
             self._attr_native_unit_of_measurement = UnitOfSpeed.KILOMETERS_PER_HOUR
             self._attr_state_class = SensorStateClass.MEASUREMENT
             self._attr_suggested_display_precision = 1
+        elif key == "trip":
+            self._attr_name = "Trip (experimenteel)"
+            self._attr_device_class = SensorDeviceClass.DISTANCE
+            self._attr_native_unit_of_measurement = UnitOfLength.KILOMETERS
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+            self._attr_suggested_display_precision = 2
         elif key == "range":
             self._attr_name = "Resterend bereik"
             self._attr_device_class = SensorDeviceClass.DISTANCE
@@ -63,7 +70,7 @@ class AceSensor(AceEntity, RestoreSensor):
             ):
                 self._restored = value
             elif (
-                self.key == "range"
+                self.key in ("range", "trip")
                 and isinstance(value, (int, float))
                 and 0 <= value <= 655.35
             ):
@@ -80,6 +87,7 @@ class AceSensor(AceEntity, RestoreSensor):
         value = {
             "battery": self.coordinator.data.battery_soc,
             "range": self.coordinator.data.range_km,
+            "trip": self.coordinator.data.trip_km,
             "speed": self.coordinator.data.speed_kmh,
             "last_seen": self.coordinator.last_seen,
         }[self.key]

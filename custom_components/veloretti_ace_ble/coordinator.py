@@ -119,6 +119,7 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
             self.data.charging,
             self.data.lights,
             self.data.speed_kmh,
+            self.data.trip_km,
         )
         valid = self.data.receive(bytes(raw))
         now = time.monotonic()
@@ -137,8 +138,9 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
             self.data.charging,
             self.data.lights,
             self.data.speed_kmh,
+            self.data.trip_km,
         )
-        changed_status = current[:4] != previous[:4]
+        changed_status = current[:4] != previous[:4] or current[5] != previous[5]
         changed_speed = current[4] != previous[4] and now - self._last_publish >= 1
         if changed_status or changed_speed or now - self._last_publish >= 5:
             self._last_publish = now
