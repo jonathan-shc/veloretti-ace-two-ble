@@ -22,9 +22,9 @@ class Telemetry:
                 self.raw[key] = packet[:64].hex(" ")
         if len(packet) != 12 or not packet.startswith(BATTERY_HEADER):
             return False
-        # Observed 5B 00 matches 91%. uint16 LE is provisional; the zero high
-        # byte prevents accidental acceptance of wider/out-of-range values.
-        soc = int.from_bytes(packet[4:6], "little")
+        # Byte 4 matched display SOC 91%; a later frame has 5C 01. Byte 5
+        # varies independently and is not part of the SOC value.
+        soc = packet[4]
         if not 0 <= soc <= 100:
             return False
         self.battery_soc = soc

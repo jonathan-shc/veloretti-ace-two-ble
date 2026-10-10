@@ -3,7 +3,7 @@
 Local Home Assistant integration for the Ace Two V-S/V-R Bluetooth profile. Uses active ESPHome proxies (including NanoC6) or a connectable local adapter. Separate domain `veloretti_ace_ble`, so it can coexist with `veloretti_ble` and the cloud integration.
 
 ## Current status
-Notification subscription and the candidate battery decoder are implemented and **tested live on Home Assistant 2026.10.0 through an active NanoC6 proxy**, reporting 91% with live connectivity. One user capture at a display SOC of 91% contains 423 matching battery packets. Validation at a second SOC is still required. Other models, address stability, restart/reconnect behavior and charging with the bike switched off remain unverified.
+Notification subscription and the candidate battery decoder are implemented and **tested live on Home Assistant 2026.10.0 through an active NanoC6 proxy**, reporting 91% with live connectivity. One user capture at a display SOC of 91% contains 423 matching battery packets. The user subsequently confirmed display SOC 92% against a second live frame; the decoder now treats its following byte as a separate unknown field. Other models, address stability, restart/reconnect behavior and charging with the bike switched off remain unverified.
 
 Only battery (explicitly experimental), last battery measurement and live connectivity are exposed. Last-known battery and its timestamp survive a Home Assistant restart. Live means a connection plus a recognized battery frame in the last 30 seconds; advertising alone is insufficient.
 

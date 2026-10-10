@@ -34,7 +34,7 @@ class ProtocolTests(unittest.TestCase):
 
     def test_invalid_soc_length_and_header(self):
         frame = bytearray.fromhex("02 F8 32 00 5B 00 00 00 2A 04 D4 17")
-        for index, value in ((4, 101), (5, 1), (0, 3)):
+        for index, value in ((4, 101), (0, 3)):
             p = frame.copy()
             p[index] = value
             self.assertFalse(Telemetry().receive(bytes(p)))
@@ -59,3 +59,10 @@ class ProtocolTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BatteryStatusTests(unittest.TestCase):
+    def test_changed_following_field_does_not_reject_soc(self):
+        t = Telemetry()
+        self.assertTrue(t.receive(bytes.fromhex("02 F8 32 00 5C 01 00 00 2A 04 D4 17")))
+        self.assertEqual(t.battery_soc, 92)

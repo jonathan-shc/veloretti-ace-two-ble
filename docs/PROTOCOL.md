@@ -14,7 +14,7 @@ Service `92914b00-bfde-4176-b275-09a9e1e2c691`; command characteristic `92914b01
 ## Candidate battery frame
 `02 F8 32 00 5B 00 00 00 2A 04 D4 17` (12 bytes).
 - Offset 0–3: observed discriminator, meaning unknown.
-- Offset 4: 0x5B = 91, matches display. Interpreted conservatively with byte 5 as little-endian uint16; uint8 vs uint16 unproven. Accept only 0..100.
+- Offset 4: 0x5B = 91, matches display. A later live frame contains `5C 01` at offsets 4/5. Decode byte 4 alone (candidate 92%); byte 5 is a separate unknown field. Accept only 0..100.
 - Remaining bytes unknown. Do not label voltage/current/charging without controlled comparisons.
 
 Other observed messages include `00 00 02 50 ...` and `00 00 02 51 ...`. Their resemblance to older registers is insufficient: framing and placement differ. Decode only the exact battery header/length; retain other packets as raw diagnostics. Speed, assist, lights, current and charging state have not been mapped.
@@ -22,3 +22,5 @@ Other observed messages include `00 00 02 50 ...` and `00 00 02 51 ...`. Their r
 Live HA validation: 2026-10-10, Home Assistant 2026.10.0 with active NanoC6 proxy, subscription succeeded, decoded SOC 91%, live true, no integration system-log errors. This validates the real proxy path at one percentage.
 
 Next: verify device identity and battery at a changed percentage; test reconnect, unload cleanup on real hardware and timestamp persistence. Compare controlled assist/light changes in future captures to infer additional fields. No command probing or speculative writes.
+
+Second live comparison: user confirmed 92% on the display, charger NOT connected, matching `02 F8 32 00 5C 01 00 00 2A 04 D4 17`. This supports byte 4 as SOC and rules out interpreting byte 5=1 as sufficient evidence of charging. v0.1.2 decodes SOC as uint8. v0.1.1 added timed reconnect using fresh advertisements because HA change callbacks may suppress unchanged packets.
