@@ -30,3 +30,5 @@ The user expects approximately 4000–5000 km. An exploratory search of 2/3/4-by
 - The known trip field changes and resets (1.23–1.25 previously, latest 0.64); it is not a lifetime total.
 
 No convincing odometer mapping has been identified. An exact displayed total distance and a later reading after a known ride would allow better discrimination; a coarse 4000–5000 expectation cannot select among coincidental matches. No odometer sensor or speculative command writes were added.
+
+Follow-up: the user reported two rides of approximately 0.64 km each, separated by powering the bike off; only the last trip was received. Comparing the recent pre-ride snapshot with the fresh post-ride snapshot found no 4000–5000 interpretation increasing by approximately 1.28 km (checked tolerance ±0.15 km across the above integer/scaling combinations). The trip field changed from 1.23 to 0.64 km, and the static candidate fields remained unchanged. This does not exclude a different encoding or a total-distance message that is not emitted in the current notification stream.
