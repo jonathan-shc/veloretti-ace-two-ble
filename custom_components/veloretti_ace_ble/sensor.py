@@ -92,6 +92,13 @@ class AceSensor(AceEntity, RestoreSensor):
         return True
 
     @property
+    def extra_state_attributes(self):
+        if self.key == "trip":
+            observed = self.coordinator.trip_observed_at
+            return {"observed_at": observed.isoformat() if observed else None}
+        return None
+
+    @property
     def native_value(self):
         value = {
             "battery": self.coordinator.data.battery_soc,
