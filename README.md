@@ -32,3 +32,5 @@ Diagnostics include a rolling, memory-only capture of the last 6000 notification
 ## Observed display power
 
 The experimental power binary sensor decodes only the observed `02 f8 32 04` five-byte on (`01`) / off (`00`) event. It retains the event with an `observed_at` timestamp; Bluetooth loss alone does not mean the display is off. Unknown codes remain unknown. No Bluetooth commands are sent to wake the bike.
+
+Trip sensor attribute `observed_at` identifies the actual validated Bluetooth trip packet. It is not restored; reconnect clears it until a new packet arrives. Home Assistant publication timestamps alone are not proof of a fresh trip.

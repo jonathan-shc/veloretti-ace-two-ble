@@ -99,6 +99,17 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
         client.disconnect.assert_awaited_once()
         self.assertEqual(self.c.last_error, "ValueError")
 
+    async def test_trip_timestamp_only_advances_for_valid_trip_packet(self):
+        self.assertIsNone(self.c.trip_observed_at)
+        self.c._notify(None, bytearray.fromhex("02 F8 32 00 5B 40 00 00 2A 04 D4 17"))
+        observed = self.c.trip_observed_at
+        self.assertIsNotNone(observed)
+        self.assertEqual(self.c.data.trip_km, 0.64)
+        self.c._notify(None, bytearray.fromhex("04 FF 14 00 00"))
+        self.assertEqual(self.c.trip_observed_at, observed)
+        self.c._notify(None, bytearray.fromhex("02 F8 32 00 FF 40 00 00 2A 04 D4 17"))
+        self.assertEqual(self.c.trip_observed_at, observed)
+
     async def test_unknown_packet_does_not_mark_battery_live(self):
         self.c.connected = True
         self.c._notify(None, bytearray.fromhex("04 FF 14 00 00"))

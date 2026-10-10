@@ -36,6 +36,7 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
         self.capture = PacketCapture()
         self.connected = False
         self.last_seen: datetime | None = None
+        self.trip_observed_at: datetime | None = None
         self.power_observed_at: datetime | None = None
         self.last_error: str | None = None
         self._task: asyncio.Task | None = None
@@ -145,6 +146,7 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
         if len(raw) == 5 and bytes(raw).startswith(POWER_HEADER):
             self.power_observed_at = timestamp
         if valid:
+            self.trip_observed_at = timestamp
             self.last_seen = timestamp
             self._last_battery = now
         # The capture contains >20 packets/s. Publish at most every five seconds,
@@ -169,6 +171,7 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
         self._last_battery = 0.0
         self._last_charging = 0.0
         self._last_speed = 0.0
+        self.trip_observed_at = None
         self.data.charging = None
         self.data.lights = None
         self.data.speed_kmh = None
