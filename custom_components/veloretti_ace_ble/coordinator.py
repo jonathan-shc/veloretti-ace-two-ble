@@ -20,6 +20,7 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 from .const import DOMAIN, NOTIFY_UUID, SERVICE_UUID
 from .protocol import Telemetry, CHARGING_HEADER, SPEED_HEADER
+from .capture import PacketCapture
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
         self.entry = entry
         self.address = entry.data["address"]
         self.data = Telemetry()
+        self.capture = PacketCapture()
         self.connected = False
         self.last_seen: datetime | None = None
         self.last_error: str | None = None
@@ -122,6 +124,8 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
 
     @callback
     def _notify(self, _characteristic, raw: bytearray) -> None:
+        timestamp = dt_util.utcnow()
+        self.capture.record(bytes(raw), timestamp.isoformat())
         previous = (
             self.data.battery_soc,
             self.data.range_km,
@@ -137,7 +141,7 @@ class AceCoordinator(DataUpdateCoordinator[Telemetry]):
         if len(raw) == 5 and bytes(raw).startswith(CHARGING_HEADER):
             self._last_charging = now
         if valid:
-            self.last_seen = dt_util.utcnow()
+            self.last_seen = timestamp
             self._last_battery = now
         # The capture contains >20 packets/s. Publish at most every five seconds,
         # except when the decoded battery actually changes.

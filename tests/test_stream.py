@@ -1,6 +1,7 @@
 """Check notification-only behavior and cleanup without Bluetooth hardware."""
 
 import asyncio
+from datetime import datetime, timezone
 import importlib.util
 from pathlib import Path
 import sys
@@ -54,11 +55,11 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
             "homeassistant.helpers.update_coordinator",
             DataUpdateCoordinator=CoordinatorBase,
         )
-        fake("homeassistant.util", dt=SimpleNamespace(utcnow=lambda: "now"))
+        fake("homeassistant.util", dt=SimpleNamespace(utcnow=lambda: datetime.now(timezone.utc)))
         self.patch = patch.dict(sys.modules, modules)
         self.patch.start()
         self.addCleanup(self.patch.stop)
-        for name in ("const", "protocol", "coordinator"):
+        for name in ("const", "protocol", "capture", "coordinator"):
             spec = importlib.util.spec_from_file_location(
                 "ace_test." + name, ROOT / (name + ".py")
             )

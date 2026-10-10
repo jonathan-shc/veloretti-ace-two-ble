@@ -15,4 +15,5 @@ async def async_get_config_entry_diagnostics(hass, entry):
         "last_battery_read": c.last_seen.isoformat() if c.last_seen else None,
         "last_error": c.last_error,
         "data": asdict(c.data),
+        "capture": c.capture.snapshot(),
     }
